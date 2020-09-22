@@ -44,8 +44,15 @@ Your account should have a Hosted Zone in Route 53 for the domain in which you w
 	ns-3.awsdns-3.com.
 	ns-4.awsdns-4.co.uk.
 
+### SSH Keypair
+`kops` needs to use an SSH keypair to manage the EC2 instances of the kubernetes cluster. You can either configure dice to use an existing RSA keypair in [config.env](config.env), or create a new one like this:
+
+	$ ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_kops
+
 ## Installation
 
-Adjust the values in [config.env](config.env) to your environment and run
+Adjust the values in [config.env](config.env) to your environment and run 
 
-	$ make cluster
+	$ make kops-admin
+
+to build the toolbox container and an IAM user for `kops`. Note that the generated credentials are shown on the terminal and stored in the terraform state file (we need those later). In a production setup you would want to hide them and store them in a safe place instead, e.g. in an S3 object with appropriate permissions.
