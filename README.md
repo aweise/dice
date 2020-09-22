@@ -78,3 +78,19 @@ tl/dr; Create the kubernetes cluster by running
 	$ make k8s-cluster
 
 and be aware that this is not strictly idempotent.
+
+Note: The cluster may take a few minutes to become healthy. By default, the validation call will allow for up to 10 minutes until it times out.
+
+### Spinnaker
+
+We deploy (Spinnaker)[https://spinnaker.io] with Terraform's (Helm provider)[https://registry.terraform.io/providers/hashicorp/helm/latest/docs]:
+
+	$ make spinnaker
+
+### Istio
+
+Like Spinnaker, (Istio)[https://istio.io/] is deployed with Terraform and Helm:
+
+	$ make istio
+
+Deploying Istio with helm can be a bit problematic in the sense that it consists of two charts (`istio-init` and `istio`) which have to be released in order. Unfortunately, even when we wait for `istio-init` to finish before deploying the `istio` chart, the process may fail with what appears to be a CRD race condition. For now, the easiest workaround is to retry terraform when that happens. A slightly less ugly alternative would be to use targetting in terraform (or lifecycle dependencies) followed by some `kubectl` magic to better separate the chart deployments. In a production setup, you would want to dig depper into what causes the issue and search for a proper solution.
