@@ -51,8 +51,30 @@ Your account should have a Hosted Zone in Route 53 for the domain in which you w
 
 ## Installation
 
+### Toolbox docker image
 Adjust the values in [config.env](config.env) to your environment and run 
+
+	$ make toolbox
+
+to build the `dice-toolbox` Docker image. This contains all required tools for the rest of the deployment. Note: Building the toolbox explicitly is technically optional, as it will be pulled in automatically by the following make targets.
+
+### Provision IAM user and state bucket
+
+Next, run
 
 	$ make kops-admin
 
-to build the toolbox container and prepare an IAM user and a state bucket for `kops`. Note that the generated credentials are shown on the terminal and stored in the terraform state file (we need those later). In a production setup you would want to hide them and store them in a safe place instead, e.g. in an S3 object with appropriate permissions.
+to prepare an IAM user and a state bucket for `kops`. This step uses [Terraform](https://www.terraform.io/) for reproducible provisioning. Note that the generated credentials are shown on the terminal and stored in the terraform state file (we need those later). In a production setup you would want to hide them and store them in a safe place instead, e.g. in an S3 object with appropriate permissions.
+
+### Kubernetes cluster
+
+While [kops](https://https://kops.sigs.k8s.io/) is a popular and convenient cluster management tool, it does not play too nicely in a pure infrastructure-as-code environment. A major concern in such a setup is that kops uses an action-based CLI model. This contrasts with the more state-description model that is typical for many IaC tools (Terraform, Ansible, CloudFormation, etc). For simplicity, we will resort to a set of simple shell scripts, which are run within a toolbox container to orchestrate kops. Given enough time, fancier options would include
+* a custom Terraform provider,
+* improved state detection and error handling in the provided shell scripts, or
+* cloud-based installation, e.g. using CloudFormation or the Code* family of AWS services.
+
+tl/dr; Create the kubernetes cluster by running
+
+	$ make k8s-cluster
+
+and be aware that this is not strictly idempotent.
