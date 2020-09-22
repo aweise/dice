@@ -83,13 +83,13 @@ Note: The cluster may take a few minutes to become healthy. By default, the vali
 
 ### Spinnaker
 
-We deploy (Spinnaker)[https://spinnaker.io] with Terraform's (Helm provider)[https://registry.terraform.io/providers/hashicorp/helm/latest/docs]:
+We deploy [Spinnaker](https://spinnaker.io) with Terraform's [Helm provider](https://registry.terraform.io/providers/hashicorp/helm/latest/docs):
 
 	$ make spinnaker
 
 ### Istio
 
-Like Spinnaker, (Istio)[https://istio.io/] is deployed with Terraform and Helm:
+Like Spinnaker, [Istio](https://istio.io/) is deployed with Terraform and Helm:
 
 	$ make istio
 
