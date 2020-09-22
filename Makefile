@@ -16,4 +16,13 @@ kops-admin: toolbox $(shell find infra/aws)
 	    -ti dice-toolbox bash -c \
 	    "cd /infra && chmod +x create-kops-user.sh && ./create-kops-user.sh"
 
-
+# Use kops in a dice-toolbox container to provision a k8s cluster.
+k8s-cluster: toolbox
+	docker run \
+	    -v $$(pwd)/infra/:/infra \
+	    -v $(HOME)/.aws:/root/.aws \
+	    -v $(HOME)/.ssh:/root/.ssh \
+	    -v $(CONFIG):/config \
+	    -ti dice-toolbox bash -c \
+	    "cd /infra/k8s && chmod +x create-cluster.sh && ./create-cluster.sh"
+	

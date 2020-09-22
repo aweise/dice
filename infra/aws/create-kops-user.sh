@@ -1,4 +1,4 @@
-#ubuntu!/bin/bash
+#!/bin/bash
 
 # Provision an IAM user for kops.
 # This should not be run directly. Instead, use "make kops-admin" to run this in Docker.
