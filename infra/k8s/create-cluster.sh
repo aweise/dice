@@ -14,11 +14,13 @@ export AWS_SECRET_ACCESS_KEY=$(terraform output kops_admin_aws_secret_access_key
 aws sts get-caller-identity
 
 echo Create cluster configuration
+
 kops create cluster \
     --zones=${AZS} \
     --state=s3://${KOPS_STATE_STORE} \
     --node-count=${NODE_COUNT} \
     --node-size=${INSTANCE_TYPE} \
+    --master-size=${MASTER_INSTANCE_TYPE} \
     ${CLUSTER}
 
 echo Create SSH public key secret
@@ -29,8 +31,13 @@ kops create secret \
     -i "${SSH_KEY_PATH}.pub"
 
 echo Build kubernetes cluster
-kops update cluster --yes
+kops update cluster \
+    --state=s3://${KOPS_STATE_STORE} \
+    --name ${CLUSTER} \
+    --yes
 
 echo Waiting for cluster to become available
-kops validate cluster --wait ${KOPS_VALIDATION_TIMEOUT:-10m}
+kops validate cluster \
+    --state=s3://${KOPS_STATE_STORE} \
+    --wait ${KOPS_VALIDATION_TIMEOUT:-10m}
 
