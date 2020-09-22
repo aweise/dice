@@ -55,4 +55,4 @@ Adjust the values in [config.env](config.env) to your environment and run
 
 	$ make kops-admin
 
-to build the toolbox container and an IAM user for `kops`. Note that the generated credentials are shown on the terminal and stored in the terraform state file (we need those later). In a production setup you would want to hide them and store them in a safe place instead, e.g. in an S3 object with appropriate permissions.
+to build the toolbox container and prepare an IAM user and a state bucket for `kops`. Note that the generated credentials are shown on the terminal and stored in the terraform state file (we need those later). In a production setup you would want to hide them and store them in a safe place instead, e.g. in an S3 object with appropriate permissions.
