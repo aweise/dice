@@ -1,47 +1,3 @@
-#variable "aws_account_id" {
-#    description = "ID of the AWS account for the deployment"
-#    type = string
-#}
-
-variable "region" {
-    description = "AWS region (default: eu-west-1)"
-    default = "eu-west-1"
-    type = string
-}
-
-variable "dice_profile" {
-    description = "Name of the AWS profile for the Terraform AWS provider. Must have IAM admin rights."
-    default = "dice"
-    type = string
-}
-
-variable "admin_group_name" {
-    description = "Name of the IAM group to create, which can manage k8s clusters"
-    default = "dice-cluster-admin"
-    type = string
-}
-
-variable "kops_user_name" {
-    description = "Name of the administrative IAM user for kops"
-    default = "dice-kops"
-    type = string
-}
-
-terraform {
-    required_providers {
-        aws = {
-            source = "hashicorp/aws"
-            version = "~> 3.7.0"
-        }
-    }
-}
-
-provider "aws" {
-#    allowed_account_ids = [ var.aws_account_id ]
-    region = var.region
-    profile = var.dice_profile
-}
-
 resource "aws_iam_group" "cluster_admin" {
     name = var.admin_group_name
 }
@@ -83,12 +39,4 @@ resource "aws_iam_user_group_membership" "kops_admin" {
 
 resource "aws_iam_access_key" "kops_admin" {
     user = aws_iam_user.kops_user.name
-}
-
-output "kops_admin_aws_access_key_id" {
-    value = aws_iam_access_key.kops_admin.id
-}
-
-output "kops_admin_aws_secret_access_key" {
-    value = aws_iam_access_key.kops_admin.secret
 }
