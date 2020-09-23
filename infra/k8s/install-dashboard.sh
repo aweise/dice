@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Install kubernetes dashboar to the cluster (per: https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md)
+# Install kubernetes dashboard to the cluster (per: https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md)
 # This should not be run directly. Instead, use "make dashboard" to run this in Docker.
 . /config
 
