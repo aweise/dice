@@ -49,7 +49,7 @@ Your account should have a Hosted Zone in Route 53 for the domain in which you w
 	ns-4.awsdns-4.co.uk.
 
 ### SSH Keypair
-`kops` needs to use an SSH keypair to manage the EC2 instances of the kubernetes cluster. You can either configure dice to use an existing RSA keypair in [config.env](config.env), or create a new one like this:
+`kops` needs to use an SSH keypair to manage the EC2 instances of the kubernetes cluster. You can either configure dice to use an existing RSA keypair in [config.env](infra/config.env), or create a new one like this:
 
 	$ ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_kops
 
@@ -78,7 +78,7 @@ Note that the generated credentials are shown on the terminal and stored in the 
 
 ### Kubernetes cluster
 
-While [kops](https://https://kops.sigs.k8s.io/) is a popular and convenient cluster management tool, it does not play too nicely in a pure infrastructure-as-code environment. A major concern in such a setup is that kops uses an action-based CLI model. This contrasts with the more state-description model that is typical for many IaC tools (Terraform, Ansible, CloudFormation, etc). For simplicity, we will resort to a set of simple shell scripts, which are run within a toolbox container to orchestrate kops. Given enough time, fancier options would include
+While [kops](https://kops.sigs.k8s.io/) is a popular and convenient cluster management tool, it does not play too nicely in a pure infrastructure-as-code environment. A major concern in such a setup is that kops uses an action-based CLI model. This contrasts with the more state-description model that is typical for many IaC tools (Terraform, Ansible, CloudFormation, etc). For simplicity, we will resort to a set of simple shell scripts, which are run within a toolbox container to orchestrate kops. Given enough time, fancier options would include
 * a custom Terraform provider,
 * improved state detection and error handling in the provided shell scripts, or
 * cloud-based installation, e.g. using CloudFormation or the Code* family of AWS services.
@@ -115,7 +115,7 @@ Like Spinnaker, [Istio](https://istio.io/) is deployed with Terraform and Helm, 
 
 Deploying Istio with helm can be a bit problematic in the sense that it consists of two charts (`istio-init` and `istio`) which have to be released in order. Unfortunately, even when we wait for `istio-init` to finish before deploying the `istio` chart, the process may fail with what appears to be a CRD race condition. For now, the easiest workaround is to retry terraform when that happens. A slightly less ugly alternative would be to use targetting in terraform (or lifecycle dependencies) followed by some `kubectl` magic to better separate the chart deployments. In a production setup, you would want to dig depper into what causes the issue and search for a proper solution.
 
-After validation, the installation script [install-istio.sh](infra/k8s/install-istio.sh) uses `istioctl` and `kubectl` to activate the target profile and label the `default` namespace for [Envoy](envoyproxy.io) sidecar injection.
+After validation, the installation script [install-istio.sh](infra/k8s/install-istio.sh) uses `istioctl` and `kubectl` to activate the target profile and label the `default` namespace for [Envoy](https://envoyproxy.io/) sidecar injection.
 
 We also install kiali, so the dashboard can be access by running
 
