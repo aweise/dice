@@ -5,6 +5,7 @@ resource "helm_release" "istio-init" {
     namespace = var.istio_namespace
     wait = true
     timeout = 600
+    count = 0 
 }
 
 resource "helm_release" "istio" {
@@ -12,6 +13,7 @@ resource "helm_release" "istio" {
     repository = var.istio_repo
     chart = "istio"
     namespace = var.istio_namespace
+    count = 0
 
     set {
         name = "global.configValidation"

@@ -26,7 +26,6 @@ variable "istio_repo" {
 
 variable "istio_namespace" {
     description = "Namespace in which to deploy Istio"
-#    default = "default"
     default = "istio-system"
     type = string
 }

@@ -19,18 +19,14 @@ TF_OPTS=
 DELAY=60
 counter=0
 
-while ! terraform apply ${TF_OPTS};
-do 
-    counter=$((counter + 1))
-    echo Terraform failed ${counter} times.
-    echo This may be caused by an Istio race condition.
-    if [[ "x${counter}" == "x2" ]]; then
-        echo Giving up.
-        exit 1;
-    else
-        echo Retrying in ${DELAY} seconds.
-        sleep ${DELAY}
-        TF_OPTS=-auto-approve
-    fi;
-done
+if ! terraform apply; then
+    echo Terraform failed on the first try.
+    echo This may happen when istio-init has not finished in time.
+    echo Retrying ...
+    terraform apply -auto-approve
+fi
+istioctl install --set profile=demo
+kubectl label namespace default istio-injection=enabled
 
+# optional: install kiali
+kubectl apply -f /istio-*/samples/addons
