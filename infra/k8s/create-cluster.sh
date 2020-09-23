@@ -39,5 +39,21 @@ kops update cluster \
 echo Waiting for cluster to become available
 kops validate cluster \
     --state=s3://${KOPS_STATE_STORE} \
-    --wait ${KOPS_VALIDATION_TIMEOUT:-10m}
+    --wait ${KOPS_VALIDATION_TIMEOUT:-15m}
+
+echo Configuring initial RBAC
+cat <<EOF | kubectl apply -f -
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: kube-system
+EOF
 
