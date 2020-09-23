@@ -56,7 +56,7 @@ Your account should have a Hosted Zone in Route 53 for the domain in which you w
 ## Installation
 
 ### Toolbox docker image
-Adjust the values in [config.env](config.env) to your environment and run 
+Adjust the values in [config.env](infra/config.env) to your environment and run 
 
 	$ make toolbox
 
