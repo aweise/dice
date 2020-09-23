@@ -12,5 +12,4 @@ dice_max = int(os.getenv('DICE_MAX') or '6')
 
 @app.get('/')
 def roll_die():
-    return dict(result=prng.randint(dice_min, dice_max),
-                env=dict(os.environ))
+    return dict(result=prng.randint(dice_min, dice_max))

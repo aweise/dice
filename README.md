@@ -147,18 +147,18 @@ This creates two versions of a simple web app:
 * `dice-app:stable` responds to "GET /" with a JSON document containing random number between 1 and 6
 * `dice-app:testing` does the same for numbers between 10 and 20.
 
-### Deploy the app
+### Deploy the app (canary-style)
 
 Once the image is stored in the repository, we can deploy the demo app with the provided yaml file [dice-app.yaml](app/dice-app.yaml):
 
 	$ make deploy-webapp
 
-This creates a deployment and a service object in the default namespace.
+This creates deployments for both stable and testing versions of the app plus acorresponding service and istio configuration in the default namespace.
 
 To check that everything went fine, we can interact with dice-app via curl:
 
 	$ make verify-webapp
 	1
 	10
-	2
+	11
 

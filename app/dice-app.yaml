@@ -82,6 +82,9 @@ metadata:
 spec:
   hosts:
     - dice
+    - dice.svc.cluster.local
+  gateways:
+    - mesh
   http:
     - route:
       - destination:
@@ -109,3 +112,19 @@ spec:
     labels:
       version: canary
 
+---
+
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: ingress
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+      - dice.svc.cluster.local
