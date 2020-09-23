@@ -50,7 +50,6 @@ istio:  toolbox  ## Use terraform with the helm provider to deploy spinnaker
 	    -ti dice-toolbox bash -c \
 	    "cd /infra/k8s && chmod +x install-istio.sh && ./install-istio.sh"
 
-
 destroy-cluster: toolbox  ## Destroy the k8s cluster with all contents
 	docker run \
 	    -v $$(pwd)/infra/:/infra \
@@ -61,7 +60,7 @@ destroy-cluster: toolbox  ## Destroy the k8s cluster with all contents
 	    -ti dice-toolbox bash -c \
 	    "cd /infra/k8s && chmod +x destroy-cluster.sh && ./destroy-cluster.sh"
 
-dashboard: toolbox  ## Optional: deploy kubernetes dashboard
+dashboard: toolbox  ## Optional - deploy kubernetes dashboard
 	docker run \
 	    -v $$(pwd)/infra/:/infra \
 	    -v $(HOME)/.aws:/root/.aws \
@@ -72,3 +71,35 @@ dashboard: toolbox  ## Optional: deploy kubernetes dashboard
 	    -ti dice-toolbox bash -c \
 	    "cd /infra/k8s && chmod +x install-dashboard.sh && ./install-dashboard.sh"
 
+build-webapp: $(shell find app/)  ## Build and push the web app to ECR
+	(cd app && \
+	    docker build -t dice-app:latest .)
+	aws --profile $(ECR_PROFILE) --region $(ECR_REGION)  \
+	   ecr get-login-password | \
+	   docker login -u AWS --password-stdin https://$(ECR_REPOSITORY)
+	docker tag dice-app:latest $(ECR_REPOSITORY)/dice-app
+	docker push
+
+deploy-webapp: toolbox $(shell find app/)  ## Deploy the app to the cluster
+	docker run \
+	    -v $$(pwd)/infra/:/infra \
+	    -v $$(pwd)/app/:/app \
+	    -v $(HOME)/.aws:/root/.aws \
+	    -v $(HOME)/.ssh:/root/.ssh \
+	    -v $(HOME)/.kube:/root/.kube \
+	    -v $(CONFIG):/config \
+	    -ti dice-toolbox bash -c \
+	    "cd /app && chmod +x deploy-app.sh && ./deploy-app.sh"
+
+verify-webapp: # toolbox  ## Get some output from the demo app
+	docker run \
+	    -v $$(pwd)/infra/:/infra \
+	    -v $$(pwd)/app/:/app \
+	    -v $(HOME)/.aws:/root/.aws \
+	    -v $(HOME)/.ssh:/root/.ssh \
+	    -v $(HOME)/.kube:/root/.kube \
+	    -v $(CONFIG):/config \
+	    -ti dice-toolbox bash -c \
+	    "(kubectl port-forward service/dice-app 80:80 &); \
+	    sleep 3; \
+	    curl http://localhost:80/"

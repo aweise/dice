@@ -1,5 +1,9 @@
 # dice
-Demo of k8s setup on AWS with Istio and Spinnaker
+As part of a lab on kubernetes, this repo demonstrates a basic setup consisting of:
+* a 2+1 node Kubernetes cluster running on AWS, deployed with kops,
+* a Spinnaker release,
+* an Istio setup,
+* and a canary deployment of a simple demo application
 
 ## Prerequisites
 
@@ -56,7 +60,9 @@ Adjust the values in [config.env](config.env) to your environment and run
 
 	$ make toolbox
 
-to build the `dice-toolbox` Docker image. This contains all required tools for the rest of the deployment. Note: Building the toolbox explicitly is technically optional, as it will be pulled in automatically by the following make targets.
+to build the `dice-toolbox` image from the provided [Dockerfile](infra/Dockerfile). This contains all required tools for the rest of the deployment.
+
+Note: Building the toolbox explicitly is technically optional, as it will be pulled in automatically by the following make targets.
 
 ### Provision IAM user and state bucket
 
@@ -64,7 +70,11 @@ Next, run
 
 	$ make kops-admin
 
-to prepare an IAM user and a state bucket for `kops`. This step uses [Terraform](https://www.terraform.io/) for reproducible provisioning. Note that the generated credentials are shown on the terminal and stored in the terraform state file (we need those later). In a production setup you would want to hide them and store them in a safe place instead, e.g. in an S3 object with appropriate permissions.
+to prepare an IAM user and a state bucket for `kops`. This step uses [Terraform](https://www.terraform.io/) for reproducible provisioning: [create-kops-user.sh](infra/aws/create-kops-user.sh) is executed inside a dice-toolbox container to deploy the terraform scripts in [kops-iam](infra/aws/kops-iam).
+
+Note that the generated credentials are shown on the terminal and stored in the terraform state file (we need those later). In a production setup you would want to hide them and store them in a safe place instead, e.g. in an S3 object with appropriate permissions.
+
+`create-kops-user.sh` then uses these generated credentials from `terraform output` to create and configure an S3 bucket for hosting the kops state.
 
 ### Kubernetes cluster
 
@@ -79,18 +89,84 @@ tl/dr; Create the kubernetes cluster by running
 
 and be aware that this is not strictly idempotent.
 
-Note: The cluster may take a few minutes to become healthy. By default, the validation call will allow for up to 10 minutes until it times out.
+This runs [create-cluster.sh](infra/k8s/create-cluster.sh) inside a dice-toolbox, which uses kops to configure, deploy and validate the cluster, and which sets up an initial RBAC policy for helm.
+
+Note: The cluster may take a few minutes to become healthy. By default, the validation call will allow for up to 15 minutes until it times out.
 
 ### Spinnaker
 
-We deploy [Spinnaker](https://spinnaker.io) with Terraform's [Helm provider](https://registry.terraform.io/providers/hashicorp/helm/latest/docs):
+We deploy [Spinnaker](https://spinnaker.io) with Terraform's [Helm provider](https://registry.terraform.io/providers/hashicorp/helm/latest/docs) using the scripts in [infra/k8s/spinnaker](infra/k8s/spinnaker/):
 
 	$ make spinnaker
 
+An easy way to see Spinnaker in action is via the `spin-deck` UI:
+
+	$ kubectl port-forward service/spin-deck 9000:9000 &
+	$ kubectl port-forward service/spin-gate 8084:8084 &
+	$ xdg-open http://localhost:9000/
+
+![Spinnaker UI](assets/spinnaker.png)
+	
 ### Istio
 
-Like Spinnaker, [Istio](https://istio.io/) is deployed with Terraform and Helm:
+Like Spinnaker, [Istio](https://istio.io/) is deployed with Terraform and Helm, this time using configuration from [infra/k8s/istio](infra/k8s/istio/):
 
 	$ make istio
 
 Deploying Istio with helm can be a bit problematic in the sense that it consists of two charts (`istio-init` and `istio`) which have to be released in order. Unfortunately, even when we wait for `istio-init` to finish before deploying the `istio` chart, the process may fail with what appears to be a CRD race condition. For now, the easiest workaround is to retry terraform when that happens. A slightly less ugly alternative would be to use targetting in terraform (or lifecycle dependencies) followed by some `kubectl` magic to better separate the chart deployments. In a production setup, you would want to dig depper into what causes the issue and search for a proper solution.
+
+After validation, the installation script [install-istio.sh](infra/k8s/install-istio.sh) uses `istioctl` and `kubectl` to activate the target profile and label the `default` namespace for [Envoy](envoyproxy.io) sidecar injection.
+
+We also install kiali, so the dashboard can be access by running
+
+	$ istioctl dashboard kiali
+
+![Kiali](assets/kiali.png)
+
+### Optional: Deploy Kubernetes Dashboard
+
+The Kubernetes dashboard can be deployed by running
+
+	$ make dashboard
+
+This uses `kubectl` directly to install Dashboard from upstream and to configure RBAC. Afterwards, [install-dashboard.sh](infra/k8s/install-dashboard.sh) generates an access token in JWT format, as well as proxy instructions and a link to the UI.
+
+![Dashboard](assets/dashboard.png)
+
+## Deploy an app
+
+### Build a simple web app
+
+Dice ships with a demo application in the [app/](app/) directory.
+
+Start by building an image with Docker:
+
+	$ cd app && docker build -t dice-app:1 .
+
+### Push to an repository
+
+To deploy the image, we should push it to some accessible repository, such as ECR. Given an ECR repository in your account, use these commands to push your image to it (you may need to adjust the parameters to your environment):
+
+	$ export REGION=eu-west-1
+	$ export REPO=1234567890.dkr.ecr.${REGION}.amazonaws.com
+	$ aws --profile ecr \
+	    --region ${REGION} \
+	    ecr get-login-password | \
+	    docker login -u AWS \
+	        --password-stdin \
+	        https://${REPO}/dice-app
+	$ docker tag dice-app:1 ${REPO}/dice-app:1
+	$ docker push ${REPO}/dice-app:1
+
+### Deploy the app
+
+Once the image is stored in the repository, we can deploy the demo app with the provided yaml file [dice-app.yaml](app/dice-app.yaml):
+
+	$ make deploy-webapp
+
+This creates a deployment and a service object in the default namespace.
+
+To check that everything went fine, we can interact with the dice-app service via curl:
+
+	$ make verify-webapp | tail -n 1
+	{"result":1}
