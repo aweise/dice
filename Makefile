@@ -1,6 +1,6 @@
 CONFIG?=$$(pwd)/infra/config.env
 
-.PHONY: help toolbox kops-admin k8s-cluster charts istio spinnaker dashboard
+.PHONY: help toolbox kops-admin k8s-cluster charts istio spinnaker dashboard build-webapp-stable build-webapp-canary build-webapp deploy-webapp verify-webapp
 
 
 help: ## Print a list of available make targets
@@ -71,14 +71,13 @@ dashboard: toolbox  ## Optional - deploy kubernetes dashboard
 	    -ti dice-toolbox bash -c \
 	    "cd /infra/k8s && chmod +x install-dashboard.sh && ./install-dashboard.sh"
 
-build-webapp: $(shell find app/)  ## Build and push the web app to ECR
-	(cd app && \
-	    docker build -t dice-app:latest .)
-	aws --profile $(ECR_PROFILE) --region $(ECR_REGION)  \
-	   ecr get-login-password | \
-	   docker login -u AWS --password-stdin https://$(ECR_REPOSITORY)
-	docker tag dice-app:latest $(ECR_REPOSITORY)/dice-app
-	docker push
+build-webapp-stable: build-webapp.sh $(shell find app/)  ## Build and push the stable version of the web app to ECR
+	./build-webapp.sh stable 1 6
+
+build-webapp-canary: build-webapp.sh $(shell find app/)  ## Build and push the canary version of the web app to ECR
+	./build-webapp.sh canary 10 20
+
+build-webapp: build-webapp-stable build-webapp-canary
 
 deploy-webapp: toolbox $(shell find app/)  ## Deploy the app to the cluster
 	docker run \
@@ -100,6 +99,10 @@ verify-webapp: # toolbox  ## Get some output from the demo app
 	    -v $(HOME)/.kube:/root/.kube \
 	    -v $(CONFIG):/config \
 	    -ti dice-toolbox bash -c \
-	    "(kubectl port-forward service/dice-app 80:80 &); \
-	    sleep 3; \
-	    curl http://localhost:80/"
+	    "(kubectl port-forward deployment/dice-app-stable 80:80 >/dev/null &); \
+	    (kubectl port-forward deployment/dice-app-canary 81:80 >/dev/null &); \
+	    (kubectl port-forward service/dice-app 82:80 >/dev/null &); \
+	    sleep 2; \
+	    curl --no-progress-meter http://localhost:80/ | jq '.result'; \
+	    curl --no-progress-meter http://localhost:81/ | jq '.result'; \
+	    curl --no-progress-meter http://localhost:82/ | jq '.result'"

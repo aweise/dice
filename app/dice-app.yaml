@@ -1,31 +1,9 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: dice-app
-#  namespace: default
-  labels:
-    app: dice
-spec:
-  selector:
-    matchLabels:
-      app: dice
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: dice
-    spec:
-      containers:
-        - name: dice
-          image: +REPO+/dice-app:1
-          ports:
-            - containerPort: 80
----
-
 apiVersion: v1
 kind: Service
 metadata:
   name: dice-app
+  labels:
+    app: dice
 spec:
   selector:
     app: dice
@@ -33,3 +11,101 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dice-app-stable
+    #  labels:
+    #app: dice
+    #version: stable
+spec:
+  selector:
+    matchLabels:
+     app: dice
+     version: stable
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: dice
+        version: stable
+    spec:
+      containers:
+        - name: dice
+          image: +REPO+/dice-app:stable
+          ports:
+            - containerPort: 80
+          imagePullPolicy: Always
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dice-app-canary
+    #  labels:
+    #app: dice
+    #version: canary
+spec:
+  selector:
+     matchLabels:
+       app: dice
+       version: canary
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: dice
+        version: canary
+    spec:
+      containers:
+        - name: dice
+          image: +REPO+/dice-app:canary
+          ports:
+            - containerPort: 80
+          imagePullPolicy: Always
+          env:
+            - name: DICE_MIN
+              value: "10"
+            - name: DICE_MAX
+              value: "20"
+
+---
+
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: dice
+spec:
+  hosts:
+    - dice
+  http:
+    - route:
+      - destination:
+          host: dice
+          subset: stable
+        weight: 75
+      - destination:
+          host: dice
+          subset: canary
+        weight: 25
+
+---
+
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: dice
+spec:
+  host: dice
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+  - name: canary
+    labels:
+      version: canary
+

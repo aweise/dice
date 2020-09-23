@@ -135,28 +135,17 @@ This uses `kubectl` directly to install Dashboard from upstream and to configure
 
 ## Deploy an app
 
-### Build a simple web app
+### Push a simple web app
 
 Dice ships with a demo application in the [app/](app/) directory.
 
-Start by building an image with Docker:
+To deploy the application, we should build an image and push it to some accessible repository, such as ECR. Given an ECR repository in your account, use this command to push your image:
 
-	$ cd app && docker build -t dice-app:1 .
+	$ make build-webapp
 
-### Push to an repository
-
-To deploy the image, we should push it to some accessible repository, such as ECR. Given an ECR repository in your account, use these commands to push your image to it (you may need to adjust the parameters to your environment):
-
-	$ export REGION=eu-west-1
-	$ export REPO=1234567890.dkr.ecr.${REGION}.amazonaws.com
-	$ aws --profile ecr \
-	    --region ${REGION} \
-	    ecr get-login-password | \
-	    docker login -u AWS \
-	        --password-stdin \
-	        https://${REPO}/dice-app
-	$ docker tag dice-app:1 ${REPO}/dice-app:1
-	$ docker push ${REPO}/dice-app:1
+This creates two versions of a simple web app:
+* `dice-app:stable` responds to "GET /" with a JSON document containing random number between 1 and 6
+* `dice-app:testing` does the same for numbers between 10 and 20.
 
 ### Deploy the app
 
@@ -166,7 +155,10 @@ Once the image is stored in the repository, we can deploy the demo app with the 
 
 This creates a deployment and a service object in the default namespace.
 
-To check that everything went fine, we can interact with the dice-app service via curl:
+To check that everything went fine, we can interact with dice-app via curl:
 
-	$ make verify-webapp | tail -n 1
-	{"result":1}
+	$ make verify-webapp
+	1
+	10
+	2
+

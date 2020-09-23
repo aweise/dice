@@ -29,4 +29,6 @@ istioctl install --set profile=demo
 kubectl label namespace default istio-injection=enabled
 
 # optional: install kiali
-kubectl apply -f /istio-*/samples/addons
+kubectl apply -f /istio-*/samples/addons || true
+echo "Done. (You can ignore any errors regarding the v1alpha1 dashboard. We don't need it)"
+
